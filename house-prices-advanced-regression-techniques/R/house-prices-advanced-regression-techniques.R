@@ -33,26 +33,59 @@ setkey(tbl_train, Id)
 setkey(tbl_test, Id)
 X_train <- tbl_train[, .SD, .SDcols = !c("Id","SalePrice")]
 y_train <- tbl_train$SalePrice
+tbl_train[, Id := NULL]
+##
+old_colnames <- colnames(tbl_train)
+new_colnames <- gsub(patter = "1st", replacement = "First", x = old_colnames)
+new_colnames <- gsub(pattern = "2nd", replacement = "Second", x = new_colnames)
+new_colnames <- gsub(pattern = "3", replacement = "Third", x = new_colnames)
+colnames(tbl_train) <- new_colnames
+colnames(tbl_test) <- new_colnames
+names_train <- colnames(tbl_train)[-which(colnames(tbl_train) == "SalePrice")]
 ################################################################################
 str(tbl_train)
-any(  ## any row with na's only?
+## any row with NA's only?
+any(
   tbl_train[, lapply(
     .SD, function(x)sum(is.na(x))
     ), .SDcols = colnames(tbl_train)] == nrow(tbl_train)
 )
-plot(SalePrice ~., data = tbl_train)
-lotNas <- tbl_train[, lapply(
-  .SD, function(x)sum(is.na(x))
-), .SDcols = colnames(tbl_train)]
-idx <- lotNas > nrow(tbl_train) * 0.9
-lotNas <- colnames(tbl_train)[idx]
-tbl_train <- tbl_train[, .SD, .SDcols = !lotNas]
+## define help function for NA impute 
+imputeNA <- function(column) {
+  if (any(is.na(column))) {
+    if (is.factor(column)) {
+      probs <- table(column) / sum(table(column))
+      impute <- sample(x = names(table(column)),
+                       size = sum(is.na(column)),
+                       prob = probs, replace = TRUE)
+      column[is.na(column)] <- impute
+      column
+    } else if (is.numeric(column)) {
+      column[is.na(column)] <- median(column, na.rm = TRUE)
+      column
+    }
+  } else {
+    column
+  }
+}
+## impute NA's
+tbl_train[, (colnames(tbl_train)) := lapply(.SD, imputeNA), .SDcols = colnames(tbl_train)]
 ################################################################################
 # 2.
-gam_formula <- paste("",colnames(X_train), "", sep = "", collapse = " + ")
-gam_formula <- paste0("SalePrice ~ ", gam_formula, collapse = "", sep = "")
-gam_formula
-gam_formula <- as.formula(gam_formula)
+gam_formula_lin <- paste("",names_train, "", sep = "", collapse = " + ")
+gam_formula_lin <- paste0("SalePrice ~ ", gam_formula_lin, collapse = "", sep = "")
+gam_formula_lin
+gam_formula_lin <- as.formula(gam_formula_lin)
 
+gam_formula_s <- paste("s(",names_train, ")", sep = "", collapse = " + ")
+gam_formula_s <- paste0("SalePrice ~ ", gam_formula_s, collapse = "", sep = "")
+gam_formula_s
+gam_formula_s <- as.formula(gam_formula_s)
 
-lm(SalePrice~ . , data = tbl_train)
+model_gam_lin <- gamlss::gamlss(formula = gam_formula_lin, data = tbl_train)
+predictAll(model_gam_lin, newdata = tbl_test)
+predict(model_gam_lin, tbl_train)
+
+model_gam_lin <- mgcv::gam(formula = gam_formula_lin, data = tbl_train)
+model_gam_s <- mgcv::gam(formula = gam_formula_s, data = tbl_train)
+model_gam_s <- gamlss::gamlss(formula = gam_formula_s, data = tbl_train)
