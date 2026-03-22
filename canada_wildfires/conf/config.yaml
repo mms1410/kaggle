@@ -1,0 +1,2 @@
+crs: EPSG:4326
+world: https://naturalearth.s3.amazonaws.com/110m_cultural/ne_110m_admin_0_countries.zip

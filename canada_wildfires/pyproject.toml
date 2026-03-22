@@ -1,0 +1,20 @@
+[project]
+name = "canada-wildfires"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "mms1410", email = "svenmauricemorlock@yahoo.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "geopandas>=1.1.3",
+    "kagglehub>=1.0.0",
+    "matplotlib>=3.10.8",
+    "pandas>=3.0.1",
+    "pyarrow>=23.0.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"
